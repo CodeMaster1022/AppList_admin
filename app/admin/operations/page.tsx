@@ -1,11 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Download, Upload, FileSpreadsheet, Calendar, X } from 'lucide-react';
 import { generateExcelTemplate } from '@/lib/excelTemplate';
 import PlantSelector, { Plant } from '@/components/PlantSelector';
 import { isWithinGeofence, getDistanceToGeofence } from '@/lib/geofence';
 import mapboxgl from 'mapbox-gl';
+import RecurrenceConfigModal, { 
+  recurrenceConfigToString, 
+  stringToRecurrenceConfig,
+  getRecurrenceSummary 
+} from '@/components/RecurrenceConfig';
 
 // Set Mapbox access token
 const MAPBOX_TOKEN = 'pk.eyJ1IjoianMxMDIyIiwiYSI6ImNtaGx2dTB2aTBqeHMybHM1bzF5enU5ejUifQ._lgVorwHSSTaPpZlu14eMQ';
@@ -490,7 +495,7 @@ interface Checklist {
   area: string;
   role: string;
   activities: Array<{ id: number; name: string; requiresPhoto: boolean; recurrence?: string }>;
-  generalRecurrence?: string;
+  generalRecurrence?: string; // Stored as string (from RecurrenceConfig)
   requiresLocation?: boolean;
   location?: {
     address: string;
@@ -1153,10 +1158,10 @@ function ChecklistModal({
   const [activities, setActivities] = useState<Array<{ id: number; name: string; requiresPhoto: boolean; recurrence?: string }>>(
     editingChecklist?.activities || []
   );
-  const [generalRecurrence, setGeneralRecurrence] = useState(editingChecklist?.generalRecurrence || '');
+  const [generalRecurrence, setGeneralRecurrence] = useState<string>(editingChecklist?.generalRecurrence || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showRecurrenceModal, setShowRecurrenceModal] = useState<number | null>(null);
-  const [recurrenceConfig, setRecurrenceConfig] = useState<{ days: number; type: string }>({ days: 1, type: 'days' });
+  const [showGeneralRecurrenceModal, setShowGeneralRecurrenceModal] = useState(false);
+  const [showActivityRecurrenceModal, setShowActivityRecurrenceModal] = useState<number | null>(null);
   
   // Geofencing states
   const [requiresLocation, setRequiresLocation] = useState(editingChecklist?.requiresLocation || false);
@@ -1458,25 +1463,34 @@ function ChecklistModal({
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={activity.recurrence || ''}
-                        onChange={(e) => updateActivity(activity.id, 'recurrence', e.target.value)}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded-lg"
-                      >
-                        <option value="">No special recurrence</option>
-                        <option value="every-3-days">Every 3 days</option>
-                        <option value="every-7-days">Every 7 days</option>
-                        <option value="every-15-days">Every 15 days</option>
-                      </select>
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="text"
+                        readOnly
+                        value={activity.recurrence ? getRecurrenceSummary(stringToRecurrenceConfig(activity.recurrence)) : 'Uses checklist recurrence'}
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 cursor-pointer"
+                        onClick={() => setShowActivityRecurrenceModal(activity.id)}
+                        placeholder="Uses checklist recurrence"
+                      />
                       <button
-                        onClick={() => setShowRecurrenceModal(activity.id)}
-                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
-                        title="Configure custom recurrence"
+                        type="button"
+                        onClick={() => setShowActivityRecurrenceModal(activity.id)}
+                        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                        title="Configure custom recurrence for this activity"
                       >
-                        <Plus size={14} />
+                        <Calendar size={14} />
                         Custom
                       </button>
+                      {activity.recurrence && (
+                        <button
+                          type="button"
+                          onClick={() => updateActivity(activity.id, 'recurrence', undefined)}
+                          className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                          title="Clear custom recurrence"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -1664,62 +1678,33 @@ function ChecklistModal({
         </div>
       </div>
 
-      {/* Custom Recurrence Modal */}
-      {showRecurrenceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">Configure Custom Recurrence</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Repeat every
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    value={recurrenceConfig.days}
-                    onChange={(e) => setRecurrenceConfig({ ...recurrenceConfig, days: parseInt(e.target.value) || 1 })}
-                    className="w-20 px-3 py-2 border border-gray-300 rounded-lg"
-                  />
-                  <select
-                    value={recurrenceConfig.type}
-                    onChange={(e) => setRecurrenceConfig({ ...recurrenceConfig, type: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="days">Days</option>
-                    <option value="weeks">Weeks</option>
-                    <option value="months">Months</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowRecurrenceModal(null);
-                  setRecurrenceConfig({ days: 1, type: 'days' });
-                }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const recurrenceValue = `every-${recurrenceConfig.days}-${recurrenceConfig.type}`;
-                  updateActivity(showRecurrenceModal, 'recurrence', recurrenceValue);
-                  setShowRecurrenceModal(null);
-                  setRecurrenceConfig({ days: 1, type: 'days' });
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* General Recurrence Modal */}
+      {showGeneralRecurrenceModal && (
+        <RecurrenceConfigModal
+          value={stringToRecurrenceConfig(generalRecurrence)}
+          onChange={(config) => {
+            setGeneralRecurrence(config ? recurrenceConfigToString(config) : '');
+          }}
+          onClose={() => setShowGeneralRecurrenceModal(false)}
+          title="Configure Checklist Recurrence"
+        />
+      )}
+
+      {/* Activity Recurrence Modal */}
+      {showActivityRecurrenceModal !== null && (
+        <RecurrenceConfigModal
+          value={stringToRecurrenceConfig(
+            activities.find(a => a.id === showActivityRecurrenceModal)?.recurrence || ''
+          )}
+          onChange={(config) => {
+            const recurrenceStr = config ? recurrenceConfigToString(config) : undefined;
+            const activityId = showActivityRecurrenceModal;
+            updateActivity(activityId, 'recurrence', recurrenceStr);
+            // Keep modal open to allow further changes if needed
+          }}
+          onClose={() => setShowActivityRecurrenceModal(null)}
+          title="Configure Activity Recurrence"
+        />
       )}
     </div>
   );
