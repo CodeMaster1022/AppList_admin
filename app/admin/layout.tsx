@@ -14,6 +14,8 @@ import {
   User,
   LogOut
 } from 'lucide-react';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
   { 
@@ -41,6 +43,19 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <ProtectedRoute allowedRoles={['admin']}>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </ProtectedRoute>
+  );
+}
+
+function AdminLayoutContent({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
 
@@ -49,11 +64,11 @@ export default function AdminLayout({
       {/* Sidebar */}
       <aside
         className={`bg-gray-900 transition-all duration-300 flex flex-col ${
-          isCollapsed ? 'w-16' : 'w-64'
+          isCollapsed ? 'w-12' : 'w-64'
         }`}
       >
         {/* Header with Toggle */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        <div className="flex items-center justify-between py-4 px-1 md:px-3 border-b border-gray-800">
           {!isCollapsed && (
             <h1 className="text-lg font-semibold text-white">OpsList</h1>
           )}
@@ -67,7 +82,7 @@ export default function AdminLayout({
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-3 px-1 md:px-3 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.path;
@@ -76,7 +91,7 @@ export default function AdminLayout({
               <Link
                 key={item.path}
                 href={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                className={`flex items-center gap-3 px-1 md:px-3 py-2.5 rounded-lg transition-all ${
                   isActive
                     ? 'bg-gray-800 text-white'
                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -91,10 +106,10 @@ export default function AdminLayout({
         </nav>
 
         {/* Bottom Section - Settings and Profile */}
-        <div className="border-t border-gray-800 p-3 space-y-1">
+        <div className="border-t border-gray-800 py-3 px-1 md:px-3 space-y-1">
           {/* Settings */}
           <button
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-gray-400 hover:bg-gray-800 hover:text-white ${
+            className={`w-full flex items-center gap-3 px-1 md:px-3 py-2.5 rounded-lg transition-all text-gray-400 hover:bg-gray-800 hover:text-white ${
               isCollapsed ? 'justify-center' : ''
             }`}
             title={isCollapsed ? 'Settings' : undefined}
@@ -104,7 +119,7 @@ export default function AdminLayout({
           </button>
 
           {/* Profile Section */}
-          <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+          <div className={`flex items-center gap-3 px-1 md:px-3 py-2.5 rounded-lg transition-all ${
             isCollapsed ? 'justify-center' : ''
           }`}>
             {isCollapsed ? (
@@ -117,15 +132,16 @@ export default function AdminLayout({
                   <User size={18} className="text-gray-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">Admin User</p>
-                  <p className="text-xs text-gray-500 truncate">admin@restaurant.com</p>
+                  <p className="text-sm font-medium text-white truncate">{user?.name || 'Admin User'}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.email || 'admin@restaurant.com'}</p>
                 </div>
-                <button
-                  className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
-                  title="Logout"
-                >
-                  <LogOut size={16} />
-                </button>
+              <button
+                onClick={logout}
+                className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors"
+                title="Logout"
+              >
+                <LogOut size={16} />
+              </button>
               </>
             )}
           </div>
