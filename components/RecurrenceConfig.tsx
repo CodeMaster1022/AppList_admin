@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Calendar, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, X, Bookmark, Plus, Trash2, Edit2 } from 'lucide-react';
+import { 
+  getRecurrenceRules, 
+  saveRecurrenceRule, 
+  deleteRecurrenceRule,
+  RecurrenceRule 
+} from '@/lib/recurrenceRules';
 
 export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -45,6 +51,15 @@ export default function RecurrenceConfigModal({
   const [config, setConfig] = useState<RecurrenceConfig>(
     value || { type: 'none' }
   );
+  const [rules, setRules] = useState<RecurrenceRule[]>([]);
+  const [showCreateRule, setShowCreateRule] = useState(false);
+  const [newRuleName, setNewRuleName] = useState('');
+  const [newRuleDescription, setNewRuleDescription] = useState('');
+  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setRules(getRecurrenceRules());
+  }, []);
 
   const handleTypeChange = (type: RecurrenceType) => {
     const newConfig: RecurrenceConfig = { type };
@@ -129,11 +144,157 @@ export default function RecurrenceConfigModal({
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {/* Saved Rules Section */}
+          {rules.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Saved Rules
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateRule(!showCreateRule)}
+                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <Plus size={14} />
+                  Create Rule
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto mb-4">
+                {rules.map((rule) => {
+                  const isSelected = selectedRuleId === rule.id;
+                  const matchesCurrent = JSON.stringify(rule.config) === JSON.stringify(config);
+                  return (
+                    <button
+                      key={rule.id}
+                      type="button"
+                      onClick={() => {
+                        setConfig(rule.config);
+                        setSelectedRuleId(rule.id);
+                        setShowCreateRule(false);
+                      }}
+                      className={`text-left p-3 border-2 rounded-lg transition-all ${
+                        isSelected || matchesCurrent
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Bookmark size={14} className="text-blue-600" />
+                            <span className="font-medium text-sm text-gray-900">{rule.name}</span>
+                          </div>
+                          <p className="text-xs text-gray-600">{rule.description}</p>
+                        </div>
+                        {rule.id > 1000 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Delete rule "${rule.name}"?`)) {
+                                deleteRecurrenceRule(rule.id);
+                                setRules(getRecurrenceRules());
+                                if (selectedRuleId === rule.id) {
+                                  setSelectedRuleId(null);
+                                }
+                              }
+                            }}
+                            className="ml-2 p-1 text-red-600 hover:bg-red-50 rounded"
+                            title="Delete rule"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Create New Rule */}
+          {showCreateRule && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Rule Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newRuleName}
+                    onChange={(e) => setNewRuleName(e.target.value)}
+                    placeholder="e.g., Every Monday"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Description (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newRuleDescription}
+                    onChange={(e) => setNewRuleDescription(e.target.value)}
+                    placeholder="e.g., Weekly Monday tasks"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newRuleName.trim() && config.type !== 'none') {
+                        saveRecurrenceRule({
+                          name: newRuleName.trim(),
+                          description: newRuleDescription.trim() || newRuleName.trim(),
+                          config
+                        });
+                        setRules(getRecurrenceRules());
+                        setNewRuleName('');
+                        setNewRuleDescription('');
+                        setShowCreateRule(false);
+                      }
+                    }}
+                    disabled={!newRuleName.trim() || config.type === 'none'}
+                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Save Rule
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateRule(false);
+                      setNewRuleName('');
+                      setNewRuleDescription('');
+                    }}
+                    className="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          {rules.length > 0 && (
+            <div className="border-t border-gray-200 pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Or configure manually
+              </label>
+            </div>
+          )}
+
           {/* Recurrence Type Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Repeat
-            </label>
+            {rules.length === 0 && (
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Repeat
+              </label>
+            )}
             <div className="space-y-2">
               <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                 <input
@@ -295,8 +456,23 @@ export default function RecurrenceConfigModal({
           {/* Summary */}
           {config.type !== 'none' && (
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-medium text-blue-900 mb-1">Summary:</p>
-              <p className="text-sm text-blue-700">{getRecurrenceSummary()}</p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900 mb-1">Summary:</p>
+                  <p className="text-sm text-blue-700">{getRecurrenceSummary()}</p>
+                </div>
+                {!showCreateRule && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateRule(true)}
+                    className="ml-4 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                    title="Save as rule"
+                  >
+                    <Bookmark size={12} />
+                    Save Rule
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
