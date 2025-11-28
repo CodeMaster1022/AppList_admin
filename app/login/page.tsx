@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Building2, User } from 'lucide-react';
+import { Eye, EyeOff, Building2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user, login, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -24,6 +25,14 @@ export default function LoginPage() {
       }
     }
   }, [user, authLoading, router]);
+
+  // Check for registration success message
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('registered') === 'true') {
+      setSuccessMessage('Registration successful! Please sign in with your credentials.');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +82,11 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {successMessage && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-700">{successMessage}</p>
+            </div>
+          )}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-700">{error}</p>
@@ -127,22 +141,14 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Demo Credentials */}
-        <div className="mt-8 p-4 bg-gray-50 border-2 border-black rounded-lg">
-          <h3 className="font-semibold text-black mb-3 flex items-center gap-2">
-            <User size={18} />
-            Demo Credentials
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div>
-              <p className="font-medium text-black">Admin:</p>
-              <p className="text-gray-600">admin@restaurant.com / admin123</p>
-            </div>
-            <div>
-              <p className="font-medium text-black">User:</p>
-              <p className="text-gray-600">john.smith@restaurant.com / user123</p>
-            </div>
-          </div>
+        {/* Register Link */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don&apos;t have an account?{' '}
+            <a href="/register" className="text-black font-semibold hover:underline">
+              Sign up
+            </a>
+          </p>
         </div>
       </div>
     </div>

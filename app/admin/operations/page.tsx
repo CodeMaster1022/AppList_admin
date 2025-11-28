@@ -11,6 +11,7 @@ import RecurrenceConfigModal, {
   stringToRecurrenceConfig,
   getRecurrenceSummary 
 } from '@/components/RecurrenceConfig';
+import { api } from '@/lib/api';
 
 // Set Mapbox access token
 const MAPBOX_TOKEN = 'pk.eyJ1IjoianMxMDIyIiwiYSI6ImNtaGx2dTB2aTBqeHMybHM1bzF5enU5ejUifQ._lgVorwHSSTaPpZlu14eMQ';
@@ -480,21 +481,23 @@ const mockLanes = [
 ];
 
 interface Lane {
-  id: number;
-  plantId: number;
+  _id?: string;
+  id?: string;
+  plantId: string | { _id: string; name: string };
   name: string;
-  subAreas: Array<{ id: number; name: string }>;
+  subAreas: Array<{ _id?: string; id?: string; name: string }>;
   roles: string[];
 }
 
 interface Checklist {
-  id: number;
-  plantId: number;
+  _id?: string;
+  id?: string;
+  plantId: string | { _id: string; name: string };
   name: string;
   lane: string;
   area: string;
   role: string;
-  activities: Array<{ id: number; name: string; requiresPhoto: boolean; recurrence?: string }>;
+  activities: Array<{ _id?: string; id?: string; name: string; requiresPhoto: boolean; recurrence?: string }>;
   generalRecurrence?: string; // Stored as string (from RecurrenceConfig)
   requiresLocation?: boolean;
   location?: {
@@ -507,28 +510,87 @@ interface Checklist {
 
 export default function OperationsPage() {
   const [activeTab, setActiveTab] = useState<'lanes' | 'checklists'>('lanes');
-  const [expandedLanes, setExpandedLanes] = useState<number[]>([1]);
+  const [expandedLanes, setExpandedLanes] = useState<string[]>([]);
   const [showLaneModal, setShowLaneModal] = useState(false);
   const [editingLane, setEditingLane] = useState<Lane | null>(null);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [editingChecklist, setEditingChecklist] = useState<Checklist | null>(null);
   const [checklistType, setChecklistType] = useState<'individual' | 'bulk' | null>(null);
-  const [lanes, setLanes] = useState<Lane[]>([...mockLanes]);
-const [checklists, setChecklists] = useState<Checklist[]>([
-    { id: 1, plantId: 1, name: 'Checklist Operations - Reception', lane: 'Operations', area: 'Reception', role: 'Hosts', activities: [], generalRecurrence: 'daily' },
-    { id: 2, plantId: 1, name: 'Checklist Kitchen - Hot Kitchen', lane: 'Kitchen', area: 'Hot Kitchen', role: 'Chef', activities: [], generalRecurrence: 'daily' },
-    { id: 3, plantId: 2, name: 'Checklist Cleaning - General', lane: 'Cleaning', area: 'General Cleaning', role: 'Cleaning Staff', activities: [], generalRecurrence: 'daily' },
-  ]);
-  const [plants, setPlants] = useState<Plant[]>([
-    { id: 1, name: 'Plant 1', hasData: true },
-    { id: 2, name: 'Plant 2', hasData: true },
-  ]);
-  const [selectedPlant, setSelectedPlant] = useState<number | 'all'>('all');
-  const filteredLanes = selectedPlant === 'all' ? lanes : lanes.filter(lane => lane.plantId === selectedPlant);
-  const filteredChecklists = selectedPlant === 'all' ? checklists : checklists.filter(checklist => checklist.plantId === selectedPlant);
+  const [lanes, setLanes] = useState<Lane[]>([]);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [selectedPlant, setSelectedPlant] = useState<string | 'all'>('all');
+  const [loading, setLoading] = useState(true);
+
+  // Load plants, lanes, and checklists
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Load plants
+        const plantsData = await api.plants.getAll();
+        const normalizedPlants: Plant[] = plantsData.map((p: any) => ({
+          _id: p._id,
+          id: p._id,
+          name: p.name,
+        }));
+        setPlants(normalizedPlants);
+
+        // Load lanes
+        const lanesData = await api.lanes.getAll();
+        const normalizedLanes: Lane[] = lanesData.map((l: any) => ({
+          _id: l._id,
+          id: l._id,
+          plantId: typeof l.plantId === 'object' ? l.plantId._id : l.plantId,
+          name: l.name,
+          subAreas: l.subAreas || [],
+          roles: l.roles || [],
+        }));
+        setLanes(normalizedLanes);
+        if (normalizedLanes.length > 0) {
+          setExpandedLanes([normalizedLanes[0]._id || normalizedLanes[0].id || '']);
+        }
+
+        // Load checklists
+        const checklistsData = await api.checklists.getAll();
+        const normalizedChecklists: Checklist[] = checklistsData.map((c: any) => ({
+          _id: c._id,
+          id: c._id,
+          plantId: typeof c.plantId === 'object' ? c.plantId._id : c.plantId,
+          name: c.name,
+          lane: c.lane,
+          area: c.area,
+          role: c.role,
+          activities: c.activities || [],
+          generalRecurrence: c.generalRecurrence,
+          requiresLocation: c.requiresLocation || false,
+          location: c.location || undefined,
+        }));
+        setChecklists(normalizedChecklists);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const filteredLanes = selectedPlant === 'all' 
+    ? lanes 
+    : lanes.filter(lane => {
+        const plantId = typeof lane.plantId === 'object' ? lane.plantId._id : lane.plantId;
+        return plantId === selectedPlant;
+      });
+  const filteredChecklists = selectedPlant === 'all' 
+    ? checklists 
+    : checklists.filter(checklist => {
+        const plantId = typeof checklist.plantId === 'object' ? checklist.plantId._id : checklist.plantId;
+        return plantId === selectedPlant;
+      });
   const canModifyCurrentPlant = selectedPlant !== 'all';
 
-  const toggleLane = (laneId: number) => {
+  const toggleLane = (laneId: string) => {
     setExpandedLanes((prev) =>
       prev.includes(laneId)
         ? prev.filter((id) => id !== laneId)
@@ -540,51 +602,119 @@ const [checklists, setChecklists] = useState<Checklist[]>([
     generateExcelTemplate();
   };
 
-  const handleLaneSave = (laneData: Omit<Lane, 'id' | 'plantId'>) => {
-    if (editingLane) {
-      setLanes(lanes.map(l => l.id === editingLane.id ? { ...editingLane, ...laneData } : l));
-      setEditingLane(null);
-    } else {
-      if (selectedPlant === 'all') {
-        alert('Select a specific plant to add lanes.');
-        return;
+  const handleLaneSave = async (laneData: Omit<Lane, '_id' | 'id' | 'plantId'>) => {
+    try {
+      if (editingLane) {
+        const laneId = editingLane._id || editingLane.id;
+        if (!laneId) return;
+        
+        const updatedLane = await api.lanes.update(laneId, {
+          name: laneData.name,
+          subAreas: laneData.subAreas.map(sa => ({ name: sa.name })),
+          roles: laneData.roles,
+        });
+        
+        const normalizedLane: Lane = {
+          _id: updatedLane._id,
+          id: updatedLane._id,
+          plantId: typeof updatedLane.plantId === 'object' ? updatedLane.plantId._id : updatedLane.plantId,
+          name: updatedLane.name,
+          subAreas: updatedLane.subAreas || [],
+          roles: updatedLane.roles || [],
+        };
+        
+        setLanes(lanes.map(l => {
+          const lId = l._id || l.id;
+          return lId === laneId ? normalizedLane : l;
+        }));
+        setEditingLane(null);
+        setShowLaneModal(false);
+      } else {
+        if (selectedPlant === 'all') {
+          alert('Select a specific plant to add lanes.');
+          return;
+        }
+        
+        const newLane = await api.lanes.create({
+          plantId: selectedPlant,
+          name: laneData.name,
+          subAreas: laneData.subAreas.map(sa => ({ name: sa.name })),
+          roles: laneData.roles,
+        });
+        
+        const normalizedLane: Lane = {
+          _id: newLane._id,
+          id: newLane._id,
+          plantId: typeof newLane.plantId === 'object' ? newLane.plantId._id : newLane.plantId,
+          name: newLane.name,
+          subAreas: newLane.subAreas || [],
+          roles: newLane.roles || [],
+        };
+        
+        setLanes([...lanes, normalizedLane]);
+        setShowLaneModal(false);
       }
-      const newLane: Lane = {
-        id: Date.now(),
-        plantId: selectedPlant as number,
-        ...laneData,
-      };
-      setLanes([...lanes, newLane]);
+    } catch (error: any) {
+      alert(error.message || 'Failed to save lane');
     }
   };
 
-  const handleLaneDelete = (id: number) => {
+  const handleLaneDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this lane? This will also remove all associated sub-areas and roles.')) {
-      setLanes(lanes.filter(l => l.id !== id));
-      setExpandedLanes(expandedLanes.filter(lid => lid !== id));
+      try {
+        await api.lanes.delete(id);
+        setLanes(lanes.filter(l => (l._id || l.id) !== id));
+        setExpandedLanes(expandedLanes.filter(lid => lid !== id));
+      } catch (error: any) {
+        alert(error.message || 'Failed to delete lane');
+      }
     }
   };
 
-  const handlePlantCreate = (name: string) => {
-    const newPlant: Plant = {
-      id: Date.now(),
-      name,
-      hasData: false,
-    };
-    setPlants([...plants, newPlant]);
-    setSelectedPlant(newPlant.id);
+  const handlePlantCreate = async (name: string) => {
+    try {
+      const newPlant = await api.plants.create({ name });
+      const normalizedPlant: Plant = {
+        _id: newPlant._id,
+        id: newPlant._id,
+        name: newPlant.name,
+      };
+      setPlants([...plants, normalizedPlant]);
+      setSelectedPlant(normalizedPlant._id || normalizedPlant.id || 'all');
+    } catch (error: any) {
+      alert(error.message || 'Failed to create plant');
+    }
   };
 
-  const handlePlantEdit = (id: number, name: string) => {
-    setPlants(plants.map(p => p.id === id ? { ...p, name } : p));
+  const handlePlantEdit = async (id: string, name: string) => {
+    try {
+      const updatedPlant = await api.plants.update(id, { name });
+      setPlants(plants.map(p => {
+        const pId = p._id || p.id;
+        return pId === id ? { ...p, name: updatedPlant.name } : p;
+      }));
+    } catch (error: any) {
+      alert(error.message || 'Failed to update plant');
+    }
   };
 
-  const handlePlantDelete = (id: number) => {
-    setPlants(plants.filter(p => p.id !== id));
-    setLanes(lanes.filter(lane => lane.plantId !== id));
-    setChecklists(checklists.filter(checklist => checklist.plantId !== id));
-    if (selectedPlant === id) {
-      setSelectedPlant('all');
+  const handlePlantDelete = async (id: string) => {
+    try {
+      await api.plants.delete(id);
+      setPlants(plants.filter(p => (p._id || p.id) !== id));
+      setLanes(lanes.filter(lane => {
+        const plantId = typeof lane.plantId === 'object' ? lane.plantId._id : lane.plantId;
+        return plantId !== id;
+      }));
+      setChecklists(checklists.filter(checklist => {
+        const plantId = typeof checklist.plantId === 'object' ? checklist.plantId._id : checklist.plantId;
+        return plantId !== id;
+      }));
+      if (selectedPlant === id) {
+        setSelectedPlant('all');
+      }
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete plant');
     }
   };
 
@@ -667,52 +797,59 @@ const [checklists, setChecklists] = useState<Checklist[]>([
           </div>
 
           <div className="space-y-3">
-            {filteredLanes.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-gray-500">Loading...</p>
+              </div>
+            ) : filteredLanes.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No lanes configured for this plant yet.</p>
             ) : (
-              filteredLanes.map((lane) => (
-                <div
-                  key={lane.id}
-                  className="bg-white rounded-lg border border-gray-200 shadow-sm"
-                >
+              filteredLanes.map((lane) => {
+                const laneId = lane._id || lane.id || '';
+                return (
                   <div
-                    className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-                    onClick={() => toggleLane(lane.id)}
+                    key={laneId}
+                    className="bg-white rounded-lg border border-gray-200 shadow-sm"
                   >
-                    <div className="flex items-center gap-3">
-                      {expandedLanes.includes(lane.id) ? (
-                        <ChevronDown className="text-gray-400" size={20} />
-                      ) : (
-                        <ChevronRight className="text-gray-400" size={20} />
-                      )}
-                      <h3 className="text-lg font-semibold text-gray-900">{lane.name}</h3>
+                    <div
+                      className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                      onClick={() => toggleLane(laneId)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {expandedLanes.includes(laneId) ? (
+                          <ChevronDown className="text-gray-400" size={20} />
+                        ) : (
+                          <ChevronRight className="text-gray-400" size={20} />
+                        )}
+                        <h3 className="text-lg font-semibold text-gray-900">{lane.name}</h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingLane(lane);
+                            setShowLaneModal(true);
+                          }}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                          title="Edit lane"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLaneDelete(laneId);
+                          }}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                          title="Delete lane"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingLane(lane);
-                          setShowLaneModal(true);
-                        }}
-                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-                        title="Edit lane"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLaneDelete(lane.id);
-                        }}
-                        className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                        title="Delete lane"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
 
-                  {expandedLanes.includes(lane.id) && (
+                    {expandedLanes.includes(laneId) && (
                     <div className="px-4 pb-4 space-y-4 border-t border-gray-200">
                       {/* Sub-areas */}
                       <div>
@@ -721,12 +858,13 @@ const [checklists, setChecklists] = useState<Checklist[]>([
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              const newArea = { id: Date.now(), name: '' };
-                              setLanes(lanes.map(l => 
-                                l.id === lane.id 
+                              const newArea = { _id: Date.now().toString(), name: '' };
+                              setLanes(lanes.map(l => {
+                                const lId = l._id || l.id;
+                                return lId === laneId 
                                   ? { ...l, subAreas: [...l.subAreas, newArea] }
-                                  : l
-                              ));
+                                  : l;
+                              }));
                             }}
                             className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
                           >
@@ -735,41 +873,52 @@ const [checklists, setChecklists] = useState<Checklist[]>([
                           </button>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {lane.subAreas.map((area) => (
-                            <span
-                              key={area.id}
-                              className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm flex items-center gap-2"
-                            >
-                              <input
-                                type="text"
-                                value={area.name}
-                                onChange={(e) => {
-                                  setLanes(lanes.map(l =>
-                                    l.id === lane.id
-                                      ? { ...l, subAreas: l.subAreas.map(a => a.id === area.id ? { ...a, name: e.target.value } : a) }
-                                      : l
-                                  ));
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="bg-transparent border-none outline-none w-24 text-blue-700"
-                              />
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (confirm(`Delete sub-area "${area.name}"?`)) {
-                                    setLanes(lanes.map(l =>
-                                      l.id === lane.id
-                                        ? { ...l, subAreas: l.subAreas.filter(a => a.id !== area.id) }
-                                        : l
-                                    ));
-                                  }
-                                }}
-                                className="hover:text-red-600"
+                          {lane.subAreas.map((area, areaIndex) => {
+                            const areaId = area._id || area.id || areaIndex.toString();
+                            return (
+                              <span
+                                key={areaId}
+                                className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm flex items-center gap-2"
                               >
-                                <Trash2 size={14} />
-                              </button>
-                            </span>
-                          ))}
+                                <input
+                                  type="text"
+                                  value={area.name}
+                                  onChange={(e) => {
+                                    setLanes(lanes.map(l => {
+                                      const lId = l._id || l.id;
+                                      return lId === laneId
+                                        ? { ...l, subAreas: l.subAreas.map((a, idx) => {
+                                            const aId = a._id || a.id || idx.toString();
+                                            return aId === areaId ? { ...a, name: e.target.value } : a;
+                                          }) }
+                                        : l;
+                                    }));
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="bg-transparent border-none outline-none w-24 text-blue-700"
+                                />
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Delete sub-area "${area.name}"?`)) {
+                                      setLanes(lanes.map(l => {
+                                        const lId = l._id || l.id;
+                                        return lId === laneId
+                                          ? { ...l, subAreas: l.subAreas.filter((a, idx) => {
+                                              const aId = a._id || a.id || idx.toString();
+                                              return aId !== areaId;
+                                            }) }
+                                          : l;
+                                      }));
+                                    }
+                                  }}
+                                  className="hover:text-red-600"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -780,11 +929,12 @@ const [checklists, setChecklists] = useState<Checklist[]>([
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              setLanes(lanes.map(l =>
-                                l.id === lane.id
+                              setLanes(lanes.map(l => {
+                                const lId = l._id || l.id;
+                                return lId === laneId
                                   ? { ...l, roles: [...l.roles, ''] }
-                                  : l
-                              ));
+                                  : l;
+                              }));
                             }}
                             className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
                           >
@@ -802,11 +952,12 @@ const [checklists, setChecklists] = useState<Checklist[]>([
                                 type="text"
                                 value={role}
                                 onChange={(e) => {
-                                  setLanes(lanes.map(l =>
-                                    l.id === lane.id
+                                  setLanes(lanes.map(l => {
+                                    const lId = l._id || l.id;
+                                    return lId === laneId
                                       ? { ...l, roles: l.roles.map((r, i) => i === idx ? e.target.value : r) }
-                                      : l
-                                  ));
+                                      : l;
+                                  }));
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                                 className="bg-transparent border-none outline-none w-20 text-green-700"
@@ -815,11 +966,12 @@ const [checklists, setChecklists] = useState<Checklist[]>([
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (confirm(`Delete role "${role}"?`)) {
-                                    setLanes(lanes.map(l =>
-                                      l.id === lane.id
+                                    setLanes(lanes.map(l => {
+                                      const lId = l._id || l.id;
+                                      return lId === laneId
                                         ? { ...l, roles: l.roles.filter((_, i) => i !== idx) }
-                                        : l
-                                    ));
+                                        : l;
+                                    }));
                                   }
                                 }}
                                 className="hover:text-red-600"
@@ -833,7 +985,8 @@ const [checklists, setChecklists] = useState<Checklist[]>([
                     </div>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -880,51 +1033,59 @@ const [checklists, setChecklists] = useState<Checklist[]>([
               {filteredChecklists.length === 0 ? (
                 <p className="text-center text-gray-500 py-8">No checklists created yet. Create your first checklist above.</p>
               ) : (
-                filteredChecklists.map((checklist) => (
-                <div
-                  key={checklist.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{checklist.name}</p>
-                    <div className="flex gap-2 mt-1">
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                        {checklist.lane}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
-                        {checklist.area}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
-                        {checklist.role}
-                      </span>
+                filteredChecklists.map((checklist) => {
+                  const checklistId = checklist._id || checklist.id || '';
+                  return (
+                    <div
+                      key={checklistId}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{checklist.name}</p>
+                        <div className="flex gap-2 mt-1">
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            {checklist.lane}
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
+                            {checklist.area}
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                            {checklist.role}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setEditingChecklist(checklist);
+                            setChecklistType('individual');
+                            setShowChecklistModal(true);
+                          }}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                          title="Edit checklist"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (confirm(`Are you sure you want to delete "${checklist.name}"?`)) {
+                              try {
+                                await api.checklists.delete(checklistId);
+                                setChecklists(checklists.filter(c => (c._id || c.id) !== checklistId));
+                              } catch (error: any) {
+                                alert(error.message || 'Failed to delete checklist');
+                              }
+                            }
+                          }}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                          title="Delete checklist"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => {
-                        setEditingChecklist(checklist);
-                        setChecklistType('individual');
-                        setShowChecklistModal(true);
-                      }}
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-                      title="Edit checklist"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        if (confirm(`Are you sure you want to delete "${checklist.name}"?`)) {
-                          setChecklists(checklists.filter(c => c.id !== checklist.id));
-                        }
-                      }}
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                      title="Delete checklist"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -954,25 +1115,65 @@ const [checklists, setChecklists] = useState<Checklist[]>([
             setChecklistType(null);
           }}
           onDownloadTemplate={downloadTemplate}
-          onSave={(checklist) => {
-            if (!editingChecklist && selectedPlant === 'all') {
-              alert('Select a specific plant to add checklists.');
-              return;
+          onSave={async (checklist) => {
+            try {
+              if (!editingChecklist && selectedPlant === 'all') {
+                alert('Select a specific plant to add checklists.');
+                return;
+              }
+              
+              if (editingChecklist) {
+                const checklistId = editingChecklist._id || editingChecklist.id;
+                if (!checklistId) return;
+                
+                const updatedChecklist = await api.checklists.update(checklistId, checklist);
+                const normalizedChecklist: Checklist = {
+                  _id: updatedChecklist._id,
+                  id: updatedChecklist._id,
+                  plantId: typeof updatedChecklist.plantId === 'object' ? updatedChecklist.plantId._id : updatedChecklist.plantId,
+                  name: updatedChecklist.name,
+                  lane: updatedChecklist.lane,
+                  area: updatedChecklist.area,
+                  role: updatedChecklist.role,
+                  activities: updatedChecklist.activities || [],
+                  generalRecurrence: updatedChecklist.generalRecurrence,
+                  requiresLocation: updatedChecklist.requiresLocation || false,
+                  location: updatedChecklist.location || undefined,
+                };
+                
+                setChecklists(checklists.map(c => {
+                  const cId = c._id || c.id;
+                  return cId === checklistId ? normalizedChecklist : c;
+                }));
+                setEditingChecklist(null);
+              } else {
+                const newChecklist = await api.checklists.create({
+                  plantId: selectedPlant,
+                  ...checklist,
+                });
+                
+                const normalizedChecklist: Checklist = {
+                  _id: newChecklist._id,
+                  id: newChecklist._id,
+                  plantId: typeof newChecklist.plantId === 'object' ? newChecklist.plantId._id : newChecklist.plantId,
+                  name: newChecklist.name,
+                  lane: newChecklist.lane,
+                  area: newChecklist.area,
+                  role: newChecklist.role,
+                  activities: newChecklist.activities || [],
+                  generalRecurrence: newChecklist.generalRecurrence,
+                  requiresLocation: newChecklist.requiresLocation || false,
+                  location: newChecklist.location || undefined,
+                };
+                
+                setChecklists([...checklists, normalizedChecklist]);
+              }
+              setShowChecklistModal(false);
+              setChecklistType(null);
+              setActiveTab('checklists');
+            } catch (error: any) {
+              alert(error.message || 'Failed to save checklist');
             }
-            if (editingChecklist) {
-              setChecklists(checklists.map(c => c.id === editingChecklist.id ? { ...editingChecklist, ...checklist } : c));
-              setEditingChecklist(null);
-            } else {
-              const newChecklist: Checklist = {
-                id: Date.now(),
-                plantId: selectedPlant as number,
-                ...checklist,
-              };
-              setChecklists([...checklists, newChecklist]);
-            }
-            setShowChecklistModal(false);
-            setChecklistType(null);
-            setActiveTab('checklists');
           }}
         />
       )}
@@ -991,12 +1192,19 @@ function LaneModal({
   onSave: (lane: Omit<Lane, 'id' | 'plantId'>) => void;
 }) {
   const [name, setName] = useState(lane?.name || '');
-  const [subAreas, setSubAreas] = useState<Array<{ id: number; name: string }>>(
-    lane?.subAreas || [{ id: Date.now(), name: '' }]
+  const [subAreas, setSubAreas] = useState<Array<{ _id?: string; id?: string; name: string }>>(
+    lane?.subAreas?.map((sa: any) => ({
+      _id: sa._id || sa.id,
+      id: sa._id || sa.id,
+      name: sa.name,
+    })) || [{ _id: Date.now().toString(), name: '' }]
   );
-  const [roles, setRoles] = useState<string[]>(lane?.roles || ['']);
+  const [roles, setRoles] = useState<string[]>(lane?.roles || []);
 
-  const addSubArea = () => setSubAreas([...subAreas, { id: Date.now(), name: '' }]);
+  const addSubArea = () => {
+    const newId = Date.now().toString();
+    setSubAreas([...subAreas, { _id: newId, id: newId, name: '' }]);
+  };
   const removeSubArea = (index: number) => setSubAreas(subAreas.filter((_, i) => i !== index));
   const updateSubArea = (index: number, value: string) => {
     const newSubAreas = [...subAreas];
@@ -1117,7 +1325,7 @@ function LaneModal({
               if (name.trim() && subAreas.every(a => a.name.trim()) && roles.every(r => r.trim())) {
                 onSave({
                   name: name.trim(),
-                  subAreas: subAreas.filter(a => a.name.trim()).map(a => ({ id: a.id, name: a.name.trim() })),
+                  subAreas: subAreas.filter(a => a.name.trim()).map(a => ({ name: a.name.trim() })),
                   roles: roles.filter(r => r.trim()),
                 });
                 onClose();
@@ -1155,13 +1363,19 @@ function ChecklistModal({
   const [selectedSubArea, setSelectedSubArea] = useState(editingChecklist?.area || '');
   const [selectedRole, setSelectedRole] = useState(editingChecklist?.role || '');
   const [title, setTitle] = useState(editingChecklist?.name || '');
-  const [activities, setActivities] = useState<Array<{ id: number; name: string; requiresPhoto: boolean; recurrence?: string }>>(
-    editingChecklist?.activities || []
+  const [activities, setActivities] = useState<Array<{ _id?: string; id?: string; name: string; requiresPhoto: boolean; recurrence?: string }>>(
+    editingChecklist?.activities?.map((act: any) => ({
+      _id: act._id || act.id,
+      id: act._id || act.id,
+      name: act.name,
+      requiresPhoto: act.requiresPhoto || false,
+      recurrence: act.recurrence,
+    })) || []
   );
   const [generalRecurrence, setGeneralRecurrence] = useState<string>(editingChecklist?.generalRecurrence || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showGeneralRecurrenceModal, setShowGeneralRecurrenceModal] = useState(false);
-  const [showActivityRecurrenceModal, setShowActivityRecurrenceModal] = useState<number | null>(null);
+  const [showActivityRecurrenceModal, setShowActivityRecurrenceModal] = useState<string | number | null>(null);
   
   // Geofencing states
   const [requiresLocation, setRequiresLocation] = useState(editingChecklist?.requiresLocation || false);
@@ -1225,15 +1439,22 @@ function ChecklistModal({
   }
 
   const addActivity = () => {
-    setActivities([...activities, { id: Date.now(), name: '', requiresPhoto: false }]);
+    const newId = Date.now().toString();
+    setActivities([...activities, { _id: newId, id: newId, name: '', requiresPhoto: false }]);
   };
 
-  const removeActivity = (id: number) => {
-    setActivities(activities.filter((a) => a.id !== id));
+  const removeActivity = (id: string | number) => {
+    setActivities(activities.filter((a) => {
+      const aId = a._id || a.id;
+      return aId?.toString() !== id.toString();
+    }));
   };
 
-  const updateActivity = (id: number, field: string, value: any) => {
-    setActivities(activities.map((a) => (a.id === id ? { ...a, [field]: value } : a)));
+  const updateActivity = (id: string | number, field: string, value: any) => {
+    setActivities(activities.map((a) => {
+      const aId = a._id || a.id;
+      return aId?.toString() === id.toString() ? { ...a, [field]: value } : a;
+    }));
   };
 
   const moveActivity = (index: number, direction: 'up' | 'down') => {
@@ -1289,7 +1510,11 @@ function ChecklistModal({
       lane: selectedLane,
       area: selectedSubArea,
       role: selectedRole,
-      activities: activities.map(a => ({ ...a })),
+      activities: activities.map(a => ({ 
+        name: a.name, 
+        requiresPhoto: a.requiresPhoto, 
+        recurrence: a.recurrence 
+      })),
       generalRecurrence: generalRecurrence || undefined,
       requiresLocation: requiresLocation || undefined,
       location: requiresLocation && locationLat !== 0 && locationLng !== 0 ? {
@@ -1325,7 +1550,7 @@ function ChecklistModal({
               >
                 <option value="">Select...</option>
                 {lanes.map((lane) => (
-                  <option key={lane.id} value={lane.name}>
+                  <option key={lane._id || lane.id} value={lane.name}>
                     {lane.name}
                   </option>
                 ))}
@@ -1421,9 +1646,11 @@ function ChecklistModal({
             </div>
             {errors.activities && <p className="text-red-500 text-xs mb-2">{errors.activities}</p>}
             <div className="space-y-3">
-              {activities.map((activity, index) => (
-                <div
-                  key={activity.id}
+              {activities.map((activity, index) => {
+                const activityId = activity._id || activity.id || index.toString();
+                return (
+                  <div
+                    key={activityId}
                   className="p-4 border border-gray-200 rounded-lg bg-gray-50"
                 >
                   <div className="flex gap-3 mb-3">
@@ -1432,7 +1659,7 @@ function ChecklistModal({
                         type="text"
                         value={activity.name}
                         onChange={(e) => {
-                          updateActivity(activity.id, 'name', e.target.value);
+                          updateActivity(activityId, 'name', e.target.value);
                           // Clear error when user types
                           if (errors[`activity-${index}`]) {
                             const newErrors = { ...errors };
@@ -1453,11 +1680,11 @@ function ChecklistModal({
                       <input
                         type="checkbox"
                         checked={activity.requiresPhoto}
-                        onChange={(e) => updateActivity(activity.id, 'requiresPhoto', e.target.checked)}
-                        id={`photo-${activity.id}`}
+                        onChange={(e) => updateActivity(activityId, 'requiresPhoto', e.target.checked)}
+                        id={`photo-${activityId}`}
                         className="w-4 h-4"
                       />
-                      <label htmlFor={`photo-${activity.id}`} className="text-sm text-gray-700">
+                      <label htmlFor={`photo-${activityId}`} className="text-sm text-gray-700">
                         Required photo
                       </label>
                     </div>
@@ -1469,12 +1696,12 @@ function ChecklistModal({
                         readOnly
                         value={activity.recurrence ? getRecurrenceSummary(stringToRecurrenceConfig(activity.recurrence)) : 'Uses checklist recurrence'}
                         className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 cursor-pointer"
-                        onClick={() => setShowActivityRecurrenceModal(activity.id)}
+                        onClick={() => setShowActivityRecurrenceModal(activityId)}
                         placeholder="Uses checklist recurrence"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowActivityRecurrenceModal(activity.id)}
+                        onClick={() => setShowActivityRecurrenceModal(activityId)}
                         className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
                         title="Configure custom recurrence for this activity"
                       >
@@ -1484,7 +1711,7 @@ function ChecklistModal({
                       {activity.recurrence && (
                         <button
                           type="button"
-                          onClick={() => updateActivity(activity.id, 'recurrence', undefined)}
+                          onClick={() => updateActivity(activityId, 'recurrence', undefined)}
                           className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg"
                           title="Clear custom recurrence"
                         >
@@ -1508,7 +1735,7 @@ function ChecklistModal({
                         ↓
                       </button>
                       <button
-                        onClick={() => removeActivity(activity.id)}
+                        onClick={() => removeActivity(activityId)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded"
                       >
                         <Trash2 size={18} />
@@ -1516,7 +1743,8 @@ function ChecklistModal({
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {activities.length === 0 && (
                 <p className="text-center text-gray-500 py-8">
                   No activities. Click &quot;Add Activity&quot; to get started.
@@ -1694,7 +1922,10 @@ function ChecklistModal({
       {showActivityRecurrenceModal !== null && (
         <RecurrenceConfigModal
           value={stringToRecurrenceConfig(
-            activities.find(a => a.id === showActivityRecurrenceModal)?.recurrence || ''
+            activities.find(a => {
+              const aId = a._id || a.id;
+              return aId?.toString() === showActivityRecurrenceModal?.toString();
+            })?.recurrence || ''
           )}
           onChange={(config) => {
             const recurrenceStr = config ? recurrenceConfigToString(config) : undefined;

@@ -4,18 +4,19 @@ import { useState } from 'react';
 import { ChevronDown, Plus, Edit, Trash2, Building2 } from 'lucide-react';
 
 export interface Plant {
-  id: number;
+  _id?: string;
+  id?: string;
   name: string;
   hasData?: boolean;
 }
 
 interface PlantSelectorProps {
   plants: Plant[];
-  selectedPlant: number | 'all';
-  onPlantChange: (plantId: number | 'all') => void;
+  selectedPlant: string | 'all';
+  onPlantChange: (plantId: string | 'all') => void;
   onPlantCreate: (name: string) => void;
-  onPlantEdit: (id: number, name: string) => void;
-  onPlantDelete: (id: number) => void;
+  onPlantEdit: (id: string, name: string) => void;
+  onPlantDelete: (id: string) => void;
 }
 
 export default function PlantSelector({
@@ -37,7 +38,7 @@ export default function PlantSelector({
 
   const selectedPlantName = selectedPlant === 'all' 
     ? 'ALL' 
-    : plants.find(p => p.id === selectedPlant)?.name || 'ALL';
+    : plants.find(p => (p._id || p.id) === selectedPlant)?.name || 'ALL';
 
   const handleCreate = () => {
     if (newPlantName.trim()) {
@@ -49,20 +50,26 @@ export default function PlantSelector({
 
   const handleEdit = () => {
     if (editingPlant && editPlantName.trim()) {
-      onPlantEdit(editingPlant.id, editPlantName.trim());
-      setEditPlantName('');
-      setShowEditModal(false);
-      setEditingPlant(null);
+      const plantId = editingPlant._id || editingPlant.id;
+      if (plantId) {
+        onPlantEdit(plantId, editPlantName.trim());
+        setEditPlantName('');
+        setShowEditModal(false);
+        setEditingPlant(null);
+      }
     }
   };
 
   const handleDelete = () => {
     if (deletingPlant) {
-      onPlantDelete(deletingPlant.id);
-      setShowDeleteModal(false);
-      setDeletingPlant(null);
-      if (selectedPlant === deletingPlant.id) {
-        onPlantChange('all');
+      const plantId = deletingPlant._id || deletingPlant.id;
+      if (plantId) {
+        onPlantDelete(plantId);
+        setShowDeleteModal(false);
+        setDeletingPlant(null);
+        if (selectedPlant === plantId) {
+          onPlantChange('all');
+        }
       }
     }
   };
@@ -110,51 +117,54 @@ export default function PlantSelector({
                   <Plus size={16} />
                   Add Plant
                 </button>
-                {plants.map((plant) => (
-                  <div
-                    key={plant.id}
-                    className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-100"
-                  >
-                    <button
-                      onClick={() => {
-                        onPlantChange(plant.id);
-                        setIsOpen(false);
-                      }}
-                      className={`flex-1 text-left transition-colors ${
-                        selectedPlant === plant.id
-                          ? 'text-blue-600 font-medium'
-                          : 'text-gray-700'
-                      }`}
+                {plants.map((plant) => {
+                  const plantId = plant._id || plant.id || '';
+                  return (
+                    <div
+                      key={plantId}
+                      className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-100"
                     >
-                      {plant.name}
-                    </button>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingPlant(plant);
-                          setEditPlantName(plant.name);
-                          setShowEditModal(true);
+                        onClick={() => {
+                          onPlantChange(plantId);
+                          setIsOpen(false);
                         }}
-                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-                        title="Edit plant"
+                        className={`flex-1 text-left transition-colors ${
+                          selectedPlant === plantId
+                            ? 'text-blue-600 font-medium'
+                            : 'text-gray-700'
+                        }`}
                       >
-                        <Edit size={14} />
+                        {plant.name}
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingPlant(plant);
-                          setShowDeleteModal(true);
-                        }}
-                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                        title="Delete plant"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingPlant(plant);
+                            setEditPlantName(plant.name);
+                            setShowEditModal(true);
+                          }}
+                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                          title="Edit plant"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingPlant(plant);
+                            setShowDeleteModal(true);
+                          }}
+                          className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                          title="Delete plant"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>

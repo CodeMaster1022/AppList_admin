@@ -3,54 +3,36 @@
 import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Camera, CheckCircle, Circle, MapPin, AlertCircle, X } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { isWithinGeofence, getDistanceToGeofence } from '@/lib/geofence';
 import BottomNavigation from '@/components/mobile/BottomNavigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 
-// Mock checklist data
-const mockChecklist = {
-  id: 1,
-  name: 'Checklist Operations - Reception',
-  lane: 'Operations',
-  area: 'Reception',
-  role: 'Hosts',
-  requiresLocation: true,
-  location: {
-    address: '123 Main Street, City',
-    latitude: 19.4326,
-    longitude: -99.1332,
-    radius: 50 // meters
-  },
-  activities: [
-    {
-      id: 1,
-      name: 'Check reception area cleanliness',
-      requiresPhoto: true,
-      completed: false,
-      photo: null as string | null,
-      completedAt: null as Date | null
-    },
-    {
-      id: 2,
-      name: 'Verify guest reservation system',
-      requiresPhoto: false,
-      completed: false,
-      photo: null as string | null,
-      completedAt: null as Date | null
-    },
-    {
-      id: 3,
-      name: 'Inspect welcome desk supplies',
-      requiresPhoto: true,
-      completed: false,
-      photo: null as string | null,
-      completedAt: null as Date | null
-    }
-  ]
-};
+interface Checklist {
+  _id: string;
+  name: string;
+  lane: string;
+  area: string;
+  role: string;
+  requiresLocation: boolean;
+  location?: {
+    address: string;
+    latitude: number;
+    longitude: number;
+    radius: number;
+  };
+  activities: Array<{
+    _id?: string;
+    id?: string;
+    name: string;
+    requiresPhoto: boolean;
+  }>;
+}
 
 interface Activity {
-  id: number;
+  _id?: string;
+  id?: string;
   name: string;
   requiresPhoto: boolean;
   completed: boolean;
@@ -60,12 +42,60 @@ interface Activity {
 
 export default function ChecklistPage() {
   const { user } = useAuth();
-  const [activities, setActivities] = useState<Activity[]>(mockChecklist.activities);
+  const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [selectedChecklist, setSelectedChecklist] = useState<Checklist | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [locationValidated, setLocationValidated] = useState(false);
   const [validatingLocation, setValidatingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [selectedActivity, setSelectedActivity] = useState<number | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load user's checklists
+  useEffect(() => {
+    const loadChecklists = async () => {
+      if (!user) return;
+      
+      setLoading(true);
+      try {
+        const checklistsData = await api.activities.getChecklists();
+        setChecklists(checklistsData);
+        
+        // Auto-select first checklist if available
+        if (checklistsData.length > 0) {
+          const firstChecklist = checklistsData[0];
+          setSelectedChecklist(firstChecklist);
+          
+          // Initialize activities from checklist
+          // Check if activities are already completed today
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const initialActivities: Activity[] = firstChecklist.activities.map((act: any) => {
+            const activityId = act._id?.toString() || act.id?.toString() || '';
+            return {
+              _id: activityId,
+              id: activityId,
+              name: act.name,
+              requiresPhoto: act.requiresPhoto || false,
+              completed: false, // Will be updated based on today's completions
+              photo: null,
+              completedAt: null,
+            };
+          });
+          
+          setActivities(initialActivities);
+        }
+      } catch (error) {
+        console.error('Failed to load checklists:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChecklists();
+  }, [user]);
 
   if (!user) {
     return null;
@@ -73,7 +103,7 @@ export default function ChecklistPage() {
 
   // Validate location
   const validateLocation = async () => {
-    if (!mockChecklist.requiresLocation || !mockChecklist.location) {
+    if (!selectedChecklist?.requiresLocation || !selectedChecklist?.location) {
       setLocationValidated(true);
       return;
     }
@@ -93,18 +123,34 @@ export default function ChecklistPage() {
 
       const userLat = position.coords.latitude;
       const userLng = position.coords.longitude;
-      const { latitude, longitude, radius } = mockChecklist.location!;
+      const { latitude, longitude, radius } = selectedChecklist.location!;
 
-      // Check if user is within geofence
-      if (isWithinGeofence(userLat, userLng, latitude, longitude, radius)) {
-        setLocationValidated(true);
-        setLocationError(null);
-      } else {
-        const distance = getDistanceToGeofence(userLat, userLng, latitude, longitude);
-        setLocationError(
-          `You are ${Math.round(distance)}m away from the required location. Please move closer to start activities.`
-        );
-        setLocationValidated(false);
+      // Validate using API
+      try {
+        const validation = await api.geofence.validate(selectedChecklist._id, userLat, userLng);
+        
+        if (validation.valid) {
+          setLocationValidated(true);
+          setLocationError(null);
+        } else {
+          const distance = getDistanceToGeofence(userLat, userLng, latitude, longitude);
+          setLocationError(
+            `You are ${Math.round(distance)}m away from the required location. Please move closer to start activities.`
+          );
+          setLocationValidated(false);
+        }
+      } catch (apiError) {
+        // Fallback to client-side validation
+        if (isWithinGeofence(userLat, userLng, latitude, longitude, radius)) {
+          setLocationValidated(true);
+          setLocationError(null);
+        } else {
+          const distance = getDistanceToGeofence(userLat, userLng, latitude, longitude);
+          setLocationError(
+            `You are ${Math.round(distance)}m away from the required location. Please move closer to start activities.`
+          );
+          setLocationValidated(false);
+        }
       }
     } catch (error: any) {
       console.error('Location error:', error);
@@ -122,9 +168,9 @@ export default function ChecklistPage() {
   };
 
   // Complete activity
-  const completeActivity = async (activityId: number) => {
-    const activity = activities.find(a => a.id === activityId);
-    if (!activity) return;
+  const completeActivity = async (activityId: string) => {
+    const activity = activities.find(a => (a._id || a.id) === activityId);
+    if (!activity || !selectedChecklist) return;
 
     // Check if photo is required
     if (activity.requiresPhoto && !activity.photo) {
@@ -133,31 +179,99 @@ export default function ChecklistPage() {
       return;
     }
 
-    // Mark as completed
-    setActivities(activities.map(a =>
-      a.id === activityId
-        ? { ...a, completed: true, completedAt: new Date() }
-        : a
-    ));
+    try {
+      // Get user's current location for completion
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          });
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch (error) {
+        // Location not available, continue without it
+        console.warn('Could not get location for activity completion');
+      }
+
+      // Complete activity via API
+      await api.activities.complete({
+        checklistId: selectedChecklist._id,
+        activityId: activityId,
+        latitude,
+        longitude,
+        photo: activity.photo || undefined,
+      });
+
+      // Update local state
+      setActivities(activities.map(a => {
+        const aId = a._id || a.id;
+        return aId === activityId
+          ? { ...a, completed: true, completedAt: new Date() }
+          : a;
+      }));
+    } catch (error: any) {
+      alert(error.message || 'Failed to complete activity');
+    }
   };
 
   // Capture photo
-  const capturePhoto = (photoDataUrl: string) => {
+  const capturePhoto = async (photoDataUrl: string) => {
     if (selectedActivity) {
-      setActivities(activities.map(a =>
-        a.id === selectedActivity
+      // Update local state immediately
+      setActivities(activities.map(a => {
+        const aId = a._id || a.id;
+        return aId === selectedActivity
           ? { ...a, photo: photoDataUrl }
-          : a
-      ));
+          : a;
+      }));
       setSelectedActivity(null);
     }
     setShowCamera(false);
   };
 
   // Calculate completion percentage
-  const completionPercentage = Math.round(
-    (activities.filter(a => a.completed).length / activities.length) * 100
-  );
+  const completionPercentage = activities.length > 0
+    ? Math.round((activities.filter(a => a.completed).length / activities.length) * 100)
+    : 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-black">Loading checklist...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedChecklist) {
+    return (
+      <div className="min-h-screen bg-white">
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <Link href="/mobile" className="p-2 text-black">
+              <ArrowLeft size={20} />
+            </Link>
+            <h1 className="text-lg font-bold text-black">Checklist</h1>
+          </div>
+        </header>
+        <main className="p-4">
+          <div className="text-center py-12">
+            <p className="text-gray-600 mb-4">No checklists assigned</p>
+            <p className="text-sm text-gray-500">Please contact your administrator to assign a checklist.</p>
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -168,8 +282,8 @@ export default function ChecklistPage() {
             <ArrowLeft size={20} />
           </Link>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-black">{mockChecklist.name}</h1>
-            <p className="text-xs text-gray-600">{mockChecklist.area} - {mockChecklist.role}</p>
+            <h1 className="text-lg font-bold text-black">{selectedChecklist.name}</h1>
+            <p className="text-xs text-gray-600">{selectedChecklist.area} - {selectedChecklist.role}</p>
           </div>
           <div className="text-right">
             <div className="text-sm font-semibold text-black">{completionPercentage}%</div>
@@ -179,7 +293,7 @@ export default function ChecklistPage() {
       </header>
 
       {/* Location Validation */}
-      {mockChecklist.requiresLocation && !locationValidated && (
+      {selectedChecklist.requiresLocation && !locationValidated && (
         <div className="bg-yellow-50 border-b border-yellow-200 p-4">
           <div className="flex items-start gap-3">
             <MapPin className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
@@ -187,6 +301,9 @@ export default function ChecklistPage() {
               <h3 className="font-semibold text-black mb-1">Location Validation Required</h3>
               <p className="text-sm text-gray-700 mb-3">
                 You must be at the required location to start activities.
+                {selectedChecklist.location?.address && (
+                  <span className="block mt-1">Location: {selectedChecklist.location.address}</span>
+                )}
               </p>
               {locationError && (
                 <div className="flex items-start gap-2 mb-3 p-2 bg-red-50 border border-red-200 rounded">
@@ -209,64 +326,75 @@ export default function ChecklistPage() {
       {/* Activities List */}
       <main className="p-4 pb-24">
         <div className="max-w-md mx-auto space-y-3">
-          {activities.map((activity) => (
-            <div
-              key={activity.id}
-              className={`border-2 rounded-lg p-4 ${
-                activity.completed
-                  ? 'border-gray-300 bg-gray-50'
-                  : 'border-black bg-white'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <button
-                  onClick={() => !activity.completed && completeActivity(activity.id)}
-                  disabled={activity.completed || !locationValidated}
-                  className={`flex-shrink-0 mt-1 ${
+          {activities.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No activities in this checklist</p>
+            </div>
+          ) : (
+            activities.map((activity) => {
+              const activityId = activity._id || activity.id || '';
+              return (
+                <div
+                  key={activityId}
+                  className={`border-2 rounded-lg p-4 ${
                     activity.completed
-                      ? 'text-green-600'
-                      : 'text-gray-400'
-                  } disabled:opacity-50`}
+                      ? 'border-gray-300 bg-gray-50'
+                      : 'border-black bg-white'
+                  }`}
                 >
-                  {activity.completed ? (
-                    <CheckCircle size={24} />
-                  ) : (
-                    <Circle size={24} />
-                  )}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <h3 className={`font-medium mb-1 ${
-                    activity.completed ? 'text-gray-500 line-through' : 'text-black'
-                  }`}>
-                    {activity.name}
-                  </h3>
-                  {activity.requiresPhoto && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Camera size={14} className="text-gray-600" />
-                      <span className="text-xs text-gray-600">Photo required</span>
-                      {activity.photo && (
-                        <span className="text-xs text-green-600 font-medium">✓ Photo taken</span>
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => !activity.completed && completeActivity(activityId)}
+                      disabled={activity.completed || (selectedChecklist.requiresLocation && !locationValidated)}
+                      className={`flex-shrink-0 mt-1 ${
+                        activity.completed
+                          ? 'text-green-600'
+                          : 'text-gray-400'
+                      } disabled:opacity-50`}
+                    >
+                      {activity.completed ? (
+                        <CheckCircle size={24} />
+                      ) : (
+                        <Circle size={24} />
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-medium mb-1 ${
+                        activity.completed ? 'text-gray-500 line-through' : 'text-black'
+                      }`}>
+                        {activity.name}
+                      </h3>
+                      {activity.requiresPhoto && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Camera size={14} className="text-gray-600" />
+                          <span className="text-xs text-gray-600">Photo required</span>
+                          {activity.photo && (
+                            <span className="text-xs text-green-600 font-medium">✓ Photo taken</span>
+                          )}
+                        </div>
+                      )}
+                      {activity.completedAt && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Completed at {activity.completedAt.toLocaleTimeString()}
+                        </p>
                       )}
                     </div>
-                  )}
-                  {activity.completedAt && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Completed at {activity.completedAt.toLocaleTimeString()}
-                    </p>
+                  </div>
+                  {activity.photo && (
+                    <div className="mt-3 relative w-full aspect-video rounded-lg border border-gray-200 overflow-hidden">
+                      <Image
+                        src={activity.photo}
+                        alt="Activity photo"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
                   )}
                 </div>
-              </div>
-              {activity.photo && (
-                <div className="mt-3">
-                  <img
-                    src={activity.photo}
-                    alt="Activity photo"
-                    className="w-full rounded-lg border border-gray-200"
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </main>
 
@@ -396,4 +524,3 @@ function CameraModal({
     </div>
   );
 }
-
