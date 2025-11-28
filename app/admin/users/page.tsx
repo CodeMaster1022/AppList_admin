@@ -126,14 +126,14 @@ export default function UsersPage() {
   const unassignedUsers = plantFilteredUsers.filter((u) => !u.lane || !u.subArea || !u.roleName);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600 mt-1">User management and checklist assignment</p>
+          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+          <p className="text-gray-500 text-xs mt-0.5">Manage users and assign checklists</p>
         </div>
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <PlantSelector
             plants={plants}
             selectedPlant={selectedPlant}
@@ -144,70 +144,70 @@ export default function UsersPage() {
           />
           <button
             onClick={() => setShowUserModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center justify-center gap-1.5 text-sm font-medium shadow-md transition-all duration-200"
           >
-            <Plus size={20} />
-            New User
+            <Plus size={16} />
+            <span>New User</span>
           </button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-gradient-to-br from-white to-blue-50 rounded-lg shadow-md border border-blue-100/50 p-3 hover:shadow-lg transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Users</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">{plantFilteredUsers.length}</p>
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Total Users</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{plantFilteredUsers.length}</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <UserPlus className="text-blue-600" size={24} />
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
+              <UserPlus className="text-white" size={18} />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-gradient-to-br from-white to-green-50 rounded-lg shadow-md border border-green-100/50 p-3 hover:shadow-lg transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">With Checklist</p>
-              <p className="text-3xl font-bold text-green-600 mt-2">{assignedUsers.length}</p>
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">With Checklist</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{assignedUsers.length}</p>
             </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <CheckCircle className="text-green-600" size={24} />
+            <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-sm">
+              <CheckCircle className="text-white" size={18} />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-gradient-to-br from-white to-orange-50 rounded-lg shadow-md border border-orange-100/50 p-3 hover:shadow-lg transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Without Checklist</p>
-              <p className="text-3xl font-bold text-orange-600 mt-2">{unassignedUsers.length}</p>
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Without Checklist</p>
+              <p className="text-2xl font-bold text-orange-600 mt-1">{unassignedUsers.length}</p>
             </div>
-            <div className="p-3 bg-orange-100 rounded-full">
-              <XCircle className="text-orange-600" size={24} />
+            <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-sm">
+              <XCircle className="text-white" size={18} />
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-white rounded-lg shadow-md border border-gray-100 p-3">
+        <div className="flex flex-col md:flex-row gap-2">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                 filter === 'all'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -215,9 +215,9 @@ export default function UsersPage() {
             </button>
             <button
               onClick={() => setFilter('assigned')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                 filter === 'assigned'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -225,9 +225,9 @@ export default function UsersPage() {
             </button>
             <button
               onClick={() => setFilter('unassigned')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                 filter === 'unassigned'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -238,29 +238,29 @@ export default function UsersPage() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Assignment
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Checklist
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Compliance
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-100">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="text-center py-8">
@@ -280,79 +280,87 @@ export default function UsersPage() {
                 filteredUsers.map((user) => {
                   const userId = user._id || user.id || '';
                   return (
-                    <tr key={userId} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                    <tr key={userId} className="hover:bg-blue-50/30 transition-colors duration-150">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                        {user.name.charAt(0).toUpperCase()}
                       </div>
-                      {user.compliance !== null && (
-                        <div className="text-right">
-                          <div className={`text-2xl font-bold ${
-                            user.compliance >= 90
-                              ? 'text-green-600'
-                              : user.compliance >= 70
-                              ? 'text-yellow-600'
-                              : 'text-red-600'
-                          }`}>
-                            {user.compliance}%
-                          </div>
-                          <div className="text-xs text-gray-500">Compliance</div>
-                        </div>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 truncate">{user.name}</div>
+                        <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-2">
                     {user.lane ? (
-                      <div className="flex flex-wrap gap-2">
-                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                      <div className="flex flex-wrap gap-1">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded shadow-sm">
                           {user.lane}
                         </span>
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-gradient-to-r from-green-500 to-green-600 text-white rounded shadow-sm">
                           {user.subArea}
                         </span>
-                        <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded shadow-sm">
                           {user.roleName || user.role}
                         </span>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-400">Unassigned</span>
+                      <span className="inline-flex items-center px-2 py-0.5 text-xs text-gray-400 bg-gray-100 rounded">
+                        Unassigned
+                      </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-2">
                     {user.lane && user.subArea && user.roleName ? (
-                      <span className="text-sm text-gray-900">Assigned</span>
+                      <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-green-700 bg-green-100 rounded">
+                        <CheckCircle size={12} className="mr-1" />
+                        Assigned
+                      </span>
                     ) : (
-                      <span className="text-sm text-orange-600 font-medium">No checklist</span>
+                      <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-orange-700 bg-orange-100 rounded">
+                        <XCircle size={12} className="mr-1" />
+                        No checklist
+                      </span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 py-2">
                     {user.compliance !== null ? (
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${
-                            user.compliance >= 90
-                              ? 'bg-green-500'
-                              : user.compliance >= 70
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${user.compliance}%` }}
-                        />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 max-w-20 bg-gray-200 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              user.compliance >= 90
+                                ? 'bg-gradient-to-r from-green-500 to-green-600'
+                                : user.compliance >= 70
+                                ? 'bg-gradient-to-r from-yellow-500 to-yellow-600'
+                                : 'bg-gradient-to-r from-red-500 to-red-600'
+                            }`}
+                            style={{ width: `${user.compliance}%` }}
+                          />
+                        </div>
+                        <span className={`text-xs font-semibold ${
+                          user.compliance >= 90
+                            ? 'text-green-600'
+                            : user.compliance >= 70
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                        }`}>
+                          {user.compliance}%
+                        </span>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-400">N/A</span>
+                      <span className="text-xs text-gray-400">N/A</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => {
                           setSelectedUser(user);
                           setShowAssignmentModal(true);
                         }}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
                       >
                         {user.lane && user.subArea && user.roleName ? 'Reassign' : 'Assign'}
                       </button>
@@ -361,14 +369,16 @@ export default function UsersPage() {
                           setSelectedUser(user);
                           setShowUserModal(true);
                         }}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="p-1 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                        title="Edit user"
                       >
-                        <Edit size={16} />
+                        <Edit size={14} />
                       </button>
                       <button 
                         onClick={async () => {
-                          if (confirm(`Are you sure you want to delete "${user.name}"?`)) {
+                          if (confirm(`Are you sure you want to delete ${user.name}?`)) {
                             try {
+                              const userId = user._id || user.id;
                               await api.users.delete(userId);
                               setUsers(users.filter(u => (u._id || u.id) !== userId));
                             } catch (error: any) {
@@ -376,9 +386,10 @@ export default function UsersPage() {
                             }
                           }
                         }}
-                        className="text-red-600 hover:text-red-900"
+                        className="p-1 text-red-600 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                        title="Delete user"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
@@ -495,82 +506,89 @@ function UserModal({ onClose, editingUser, onSave, plants }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">{editingUser ? 'Edit User' : 'New User'}</h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-3">
+          <h2 className="text-lg font-bold text-white">{editingUser ? 'Edit User' : 'Create New User'}</h2>
+          <p className="text-blue-100 text-xs mt-0.5">{editingUser ? 'Update user information' : 'Add a new user to the system'}</p>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Full Name
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Full Name *
             </label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+              placeholder="Enter full name"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Email *
             </label>
             <input
               type="email"
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+              placeholder="user@example.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
               Phone
             </label>
             <input
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+              placeholder="+1 (555) 123-4567"
             />
           </div>
           {!editingUser && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Password *
               </label>
               <input
                 type="password"
                 required={!editingUser}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                placeholder="Minimum 6 characters"
               />
             </div>
           )}
           {editingUser && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Password (leave blank to keep current)
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                New Password
               </label>
               <input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                placeholder="Leave blank to keep current"
               />
+              <p className="text-xs text-gray-400 mt-0.5">Leave blank to keep current password</p>
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Plant (Optional)
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Plant
             </label>
             <select
               value={formData.plantId || ''}
               onChange={(e) => setFormData({ ...formData, plantId: e.target.value || undefined })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
             >
               <option value="">No Plant Assigned</option>
               {plants?.map((plant) => (
@@ -580,19 +598,19 @@ function UserModal({ onClose, editingUser, onSave, plants }: {
               ))}
             </select>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium transition-all duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 font-semibold shadow-md transition-all duration-200"
             >
               {loading ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
             </button>
@@ -679,16 +697,17 @@ function AssignmentModal({ user, onClose, onSave, plants }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-3">
+          <h2 className="text-lg font-bold text-white">
             {user.checklist ? 'Reassign' : 'Assign'} Checklist to {user.name}
           </h2>
+          <p className="text-blue-100 text-xs mt-0.5">Select plant, lane, sub-area, and role to assign checklists</p>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Plant *</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Plant *</label>
             <select
               value={selectedPlant}
               onChange={(e) => {
@@ -697,7 +716,7 @@ function AssignmentModal({ user, onClose, onSave, plants }: {
                 setSelectedSubArea('');
                 setSelectedRole('');
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               required
             >
               <option value="">Select a plant...</option>
@@ -707,11 +726,11 @@ function AssignmentModal({ user, onClose, onSave, plants }: {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">Select a plant to see available lanes and checklists</p>
+            <p className="text-xs text-gray-400 mt-0.5">Select a plant to see available lanes and checklists</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Lane</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Lane</label>
               <select
                 value={selectedLane}
                 onChange={(e) => {
@@ -719,7 +738,7 @@ function AssignmentModal({ user, onClose, onSave, plants }: {
                   setSelectedSubArea('');
                   setSelectedRole('');
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!selectedPlant}
               >
                 <option value="">Select...</option>
@@ -731,14 +750,14 @@ function AssignmentModal({ user, onClose, onSave, plants }: {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sub-area</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Sub-area</label>
               <select
                 value={selectedSubArea}
                 onChange={(e) => {
                   setSelectedSubArea(e.target.value);
                   setSelectedRole('');
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!selectedLane || !selectedPlant}
               >
                 <option value="">Select...</option>
@@ -750,11 +769,11 @@ function AssignmentModal({ user, onClose, onSave, plants }: {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Role</label>
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!selectedLane || !selectedPlant}
               >
                 <option value="">Select...</option>
@@ -766,36 +785,36 @@ function AssignmentModal({ user, onClose, onSave, plants }: {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Available Checklists</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Available Checklists</label>
               <select
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
                 disabled
               >
                 <option value="">
                   {availableChecklists.length > 0 
                     ? `${availableChecklists.length} checklist(s) available`
-                    : 'No checklists available for this combination'}
+                    : 'No checklists available'}
                 </option>
               </select>
             </div>
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-2.5">
+            <p className="text-xs text-blue-800 font-medium">
               When assigning a checklist, the user will be automatically associated with the selected lane and sub-area.
             </p>
           </div>
         </div>
-        <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+        <div className="p-3 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 font-medium transition-all duration-200"
           >
             Cancel
           </button>
           <button
             onClick={handleAssign}
             disabled={loading || !selectedPlant || !selectedLane || !selectedSubArea || !selectedRole}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 font-semibold shadow-md transition-all duration-200 disabled:shadow-none"
           >
             {loading ? 'Saving...' : (user.lane && user.subArea && user.roleName ? 'Reassign' : 'Assign')}
           </button>
