@@ -719,14 +719,14 @@ export default function OperationsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Operations</h1>
-          <p className="text-gray-600 mt-1">Configuration of lanes, areas and roles</p>
+          <h1 className="text-2xl font-bold text-gray-900">Operations</h1>
+          <p className="text-gray-500 text-xs mt-0.5">Configuration of lanes, areas and roles</p>
         </div>
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col items-end gap-2">
           <PlantSelector
             plants={plants}
             selectedPlant={selectedPlant}
@@ -735,18 +735,18 @@ export default function OperationsPage() {
             onPlantEdit={handlePlantEdit}
             onPlantDelete={handlePlantDelete}
           />
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               onClick={() => {
                 if (!canModifyCurrentPlant) return;
                 setChecklistType('individual');
                 setShowChecklistModal(true);
               }}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${canModifyCurrentPlant ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-all duration-200 ${canModifyCurrentPlant ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
               disabled={!canModifyCurrentPlant}
               title={canModifyCurrentPlant ? 'Create checklist' : 'Select a plant to add checklists'}
             >
-              <Plus size={20} />
+              <Plus size={16} />
               Create Checklist
             </button>
           </div>
@@ -755,10 +755,10 @@ export default function OperationsPage() {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="flex gap-4">
+        <nav className="flex gap-2">
           <button
             onClick={() => setActiveTab('lanes')}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'lanes'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -768,7 +768,7 @@ export default function OperationsPage() {
           </button>
           <button
             onClick={() => setActiveTab('checklists')}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'checklists'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -782,16 +782,16 @@ export default function OperationsPage() {
    
    {/* Lanes Tab */}
    {activeTab === 'lanes' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Operational Lanes</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Operational Lanes</h2>
             <button
               onClick={() => canModifyCurrentPlant && setShowLaneModal(true)}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${canModifyCurrentPlant ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-all duration-200 ${canModifyCurrentPlant ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
               disabled={!canModifyCurrentPlant}
               title={canModifyCurrentPlant ? 'Create a new lane' : 'Select a plant to add lanes'}
             >
-              <Plus size={20} />
+              <Plus size={16} />
               New Lane
             </button>
           </div>
@@ -810,19 +810,19 @@ export default function OperationsPage() {
                 return (
                   <div
                     key={laneId}
-                    className="bg-white rounded-lg border border-gray-200 shadow-sm"
+                    className="bg-white rounded-lg border border-gray-100 shadow-md"
                   >
                     <div
-                      className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                      className="p-3 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
                       onClick={() => toggleLane(laneId)}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {expandedLanes.includes(laneId) ? (
-                          <ChevronDown className="text-gray-400" size={20} />
+                          <ChevronDown className="text-gray-400" size={18} />
                         ) : (
-                          <ChevronRight className="text-gray-400" size={20} />
+                          <ChevronRight className="text-gray-400" size={18} />
                         )}
-                        <h3 className="text-lg font-semibold text-gray-900">{lane.name}</h3>
+                        <h3 className="text-base font-semibold text-gray-900">{lane.name}</h3>
                       </div>
                       <div className="flex items-center gap-2">
                         <button 
@@ -1221,23 +1221,23 @@ function LaneModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-3">
+          <h2 className="text-lg font-bold text-white">
             {lane ? 'Edit Lane' : 'Create New Lane'}
           </h2>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
               Lane Name
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               placeholder="E.g: Operations, Kitchen, etc."
             />
           </div>
@@ -1529,14 +1529,14 @@ function ChecklistModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-3">
+          <h2 className="text-lg font-bold text-white">
             {editingChecklist ? 'Edit Checklist' : 'Create Individual Checklist'}
           </h2>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-3">
           {/* Selection Fields */}
           <div className="grid grid-cols-3 gap-4">
             <div>

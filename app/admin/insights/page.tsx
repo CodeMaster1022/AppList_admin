@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { TrendingUp, Users, AlertCircle, Calendar, Download } from 'lucide-react';
 import PlantSelector, { Plant } from '@/components/PlantSelector';
 import { api } from '@/lib/api';
@@ -140,8 +140,20 @@ export default function InsightsPage() {
     return dataPoint;
   });
   
-  // Line colors for different lanes
-  const lineColors = ['#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f', '#ffbb28', '#ff8042', '#8884d8'];
+  // Beautiful gradient colors for different lanes
+  const lineColors = [
+    { stroke: '#3b82f6', fill: 'url(#colorBlue)' },      // Blue
+    { stroke: '#10b981', fill: 'url(#colorGreen)' },     // Green
+    { stroke: '#f59e0b', fill: 'url(#colorAmber)' },     // Amber
+    { stroke: '#8b5cf6', fill: 'url(#colorPurple)' },    // Purple
+    { stroke: '#ef4444', fill: 'url(#colorRed)' },       // Red
+    { stroke: '#06b6d4', fill: 'url(#colorCyan)' },      // Cyan
+    { stroke: '#ec4899', fill: 'url(#colorPink)' },      // Pink
+    { stroke: '#6366f1', fill: 'url(#colorIndigo)' },   // Indigo
+  ];
+
+  // Bar chart colors with gradient
+  const barColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
 
   // Transform plant compliance for chart
   const plantComplianceData = complianceByPlant.map((p: any) => ({
@@ -150,11 +162,11 @@ export default function InsightsPage() {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Header with Plant Selector */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Insights</h1>
-        <div className="flex items-center gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">Insights</h1>
+        <div className="flex items-center gap-2">
           <PlantSelector
             plants={plants}
             selectedPlant={selectedPlant}
@@ -179,10 +191,10 @@ export default function InsightsPage() {
                 setShowCustomRange(true);
               }
             }}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               selectedFilter === filter
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             {filter}
@@ -191,107 +203,317 @@ export default function InsightsPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Operational Compliance</h3>
-            <TrendingUp className="text-green-600" size={20} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-gradient-to-br from-white to-green-50 rounded-lg shadow-md border border-green-100/50 p-3 hover:shadow-lg transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Operational Compliance</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{kpis.operationalCompliance}%</p>
+            </div>
+            <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-sm">
+              <TrendingUp className="text-white" size={18} />
+            </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{kpis.operationalCompliance}%</p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Active Users</h3>
-            <Users className="text-blue-600" size={20} />
+        <div className="bg-gradient-to-br from-white to-blue-50 rounded-lg shadow-md border border-blue-100/50 p-3 hover:shadow-lg transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Active Users</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{kpis.activeUsers}</p>
+            </div>
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
+              <Users className="text-white" size={18} />
+            </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{kpis.activeUsers}</p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Without Checklist</h3>
-            <AlertCircle className="text-yellow-600" size={20} />
+        <div className="bg-gradient-to-br from-white to-orange-50 rounded-lg shadow-md border border-orange-100/50 p-3 hover:shadow-lg transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Without Checklist</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{kpis.usersWithoutChecklist}</p>
+            </div>
+            <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-sm">
+              <AlertCircle className="text-white" size={18} />
+            </div>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{kpis.usersWithoutChecklist}</p>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Compliance Trend by Area */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Compliance Trend by Area</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={areaTrendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="general" stroke="#8884d8" name="General" strokeWidth={2} />
+        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">Compliance Trend by Area</h2>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={areaTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorGeneral" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorBlue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorGreen" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorAmber" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorPurple" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorCyan" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorPink" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorIndigo" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
+              <XAxis 
+                dataKey="date" 
+                stroke="#6b7280"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis 
+                domain={[0, 100]} 
+                stroke="#6b7280"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  padding: '8px 12px',
+                }}
+                labelStyle={{ color: '#374151', fontWeight: 600, fontSize: '12px', marginBottom: '4px' }}
+                itemStyle={{ color: '#6b7280', fontSize: '12px' }}
+                formatter={(value: any) => [`${value}%`, 'Compliance']}
+              />
+              <Legend 
+                wrapperStyle={{ paddingTop: '20px', fontSize: '11px' }}
+                iconType="line"
+              />
+              <Area 
+                type="monotone" 
+                dataKey="general" 
+                stroke="#6366f1" 
+                strokeWidth={2.5}
+                fill="url(#colorGeneral)" 
+                name="General"
+                dot={{ fill: '#6366f1', r: 3 }}
+                activeDot={{ r: 5 }}
+              />
               {uniqueLanes.map((lane, index) => {
                 const displayName = lane.charAt(0).toUpperCase() + lane.slice(1);
+                const color = lineColors[index % lineColors.length];
                 return (
-                  <Line
+                  <Area
                     key={lane}
                     type="monotone"
                     dataKey={lane}
-                    stroke={lineColors[index % lineColors.length]}
+                    stroke={color.stroke}
+                    strokeWidth={2.5}
+                    fill={color.fill}
                     name={displayName}
+                    dot={{ fill: color.stroke, r: 3 }}
+                    activeDot={{ r: 5 }}
                   />
                 );
               })}
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
 
         {/* Compliance by Plant */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Compliance by Plant</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={plantComplianceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="plant" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip />
-              <Bar dataKey="compliance" fill="#8884d8" />
+        <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">Compliance by Plant</h2>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={plantComplianceData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                {barColors.map((color, index) => (
+                  <linearGradient key={index} id={`barGradient${index}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={0.8}/>
+                    <stop offset="100%" stopColor={color} stopOpacity={0.4}/>
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} vertical={false} />
+              <XAxis 
+                dataKey="plant" 
+                stroke="#6b7280"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                domain={[0, 100]} 
+                stroke="#6b7280"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  padding: '8px 12px',
+                }}
+                labelStyle={{ color: '#374151', fontWeight: 600, fontSize: '12px', marginBottom: '4px' }}
+                itemStyle={{ color: '#6b7280', fontSize: '12px' }}
+                formatter={(value: any) => [`${value}%`, 'Compliance']}
+              />
+              <Bar 
+                dataKey="compliance" 
+                radius={[8, 8, 0, 0]}
+                strokeWidth={1}
+              >
+                {plantComplianceData.map((entry: any, index: number) => (
+                  <Cell key={`cell-${index}`} fill={`url(#barGradient${index % barColors.length})`} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Low Compliance Users */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Low Compliance Users</h2>
+      <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900">Low Compliance Users</h2>
+            <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-full border border-gray-200">
+              {lowComplianceUsers.length} {lowComplianceUsers.length === 1 ? 'user' : 'users'}
+            </span>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Name</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Area</th>
-                <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Compliance</th>
+            <thead className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border-b-2 border-blue-100">
+              <tr>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    Name
+                  </div>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    Area
+                  </div>
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  <div className="flex items-center justify-end gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+                    Compliance
+                  </div>
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-100">
               {lowComplianceUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="text-center py-8 text-gray-500">
-                    No users with low compliance
+                  <td colSpan={3} className="text-center py-12">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                        <AlertCircle className="text-gray-400" size={24} />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">No users with low compliance</p>
+                      <p className="text-xs text-gray-400 mt-1">All users are meeting compliance standards</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                lowComplianceUsers.map((user: any) => (
-                  <tr key={user._id || user.id} className="border-b border-gray-100">
-                    <td className="py-3 px-4 text-sm text-gray-900">{user.name}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{user.subArea || user.area || 'N/A'}</td>
-                    <td className="py-3 px-4 text-sm text-right">
-                      <span className={`font-medium ${(user.compliance || 0) < 50 ? 'text-red-600' : 'text-yellow-600'}`}>
-                        {user.compliance || 0}%
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                lowComplianceUsers.map((user: any, index: number) => {
+                  const compliance = user.compliance || 0;
+                  const isCritical = compliance < 50;
+                  return (
+                    <tr 
+                      key={user._id || user.id} 
+                      className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/30 transition-all duration-200 group"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm ${
+                            isCritical 
+                              ? 'bg-gradient-to-br from-red-500 to-red-600' 
+                              : 'bg-gradient-to-br from-yellow-500 to-yellow-600'
+                          }`}>
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">{user.name}</div>
+                            {user.email && (
+                              <div className="text-xs text-gray-500 mt-0.5">{user.email}</div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-sm">
+                          {user.subArea || user.area || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="flex-1 max-w-24 bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isCritical
+                                  ? 'bg-gradient-to-r from-red-500 to-red-600'
+                                  : 'bg-gradient-to-r from-yellow-500 to-yellow-600'
+                              }`}
+                              style={{ width: `${compliance}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 min-w-[60px] justify-end">
+                            <span className={`text-sm font-bold ${
+                              isCritical ? 'text-red-600' : 'text-yellow-600'
+                            }`}>
+                              {compliance}%
+                            </span>
+                            {isCritical ? (
+                              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                            ) : (
+                              <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
